@@ -966,7 +966,7 @@ class FmFolderController {
         }
 
         log.debug "FolderInstance = ${bioDataObject}"
-        render template: '/fmFolder/folderDetail', plugin: "folderManagement", 
+        render template: '/fmFolder/folderDetail', plugin: "folderManagement",
                 model: [
                         folder                   : folder,
                         bioDataObject            : bioDataObject,
@@ -1265,6 +1265,27 @@ class FmFolderController {
         }
     }
 
+    def deleteStudy() {
+        def studyFolderId = params.id
+        def studyFolder = FmFolder.findById(studyFolderId)
+        fmFolderService.deleteStudy(studyFolder)
+        render 'ok'
+    }
+
+    def deleteProgram() {
+        def programFolderId = params.id
+        def programFolder = FmFolder.findById(programFolderId)
+        fmFolderService.deleteProgram(programFolder)
+        render 'ok'
+    }
+
+    def hasChildren() {
+        def parentId = params.id
+        def fmFolder = FmFolder.findById(parentId)
+        def result = [result: (fmFolder.getChildren().findAll { it.activeInd }.size() != 0)]
+        render result as JSON
+    }
+
     def deleteFile = {
 
         if (!isAdmin()) {
@@ -1413,6 +1434,9 @@ class FmFolderController {
             experiment = Experiment.get(params.id)
         } else if (params.accession) {
             experiment = Experiment.findByAccession(params.accession)
+        } else if (params.folderId) {
+            def accession = FmFolderAssociation.findByFmFolder(FmFolder.findById(params.folderId)).objectUid.replace('EXP:','')
+            experiment = Experiment.findByAccession(accession)
         }
         def folder = fmFolderService.getFolderByBioDataObject(experiment)
         if (params.returnJSON) {

@@ -11,6 +11,8 @@ import org.transmart.biomart.BioData
 import org.transmart.biomart.Experiment
 import org.transmart.searchapp.AccessLog
 import org.transmart.searchapp.AuthUser
+import org.transmart.searchapp.SecureObject
+import org.transmart.searchapp.SecureObjectAccess
 
 class FmFolderService {
 
@@ -373,6 +375,63 @@ class FmFolderService {
 
     }
 
+    def deleteFromAmApp(uniqueId) {
+        AmTagTemplateAssociation.executeUpdate("delete AmTagTemplateAssociation where objectUid = ?", [uniqueId])
+        AmTagAssociation.executeUpdate("delete AmTagAssociation where subjectUid = ?", [uniqueId])
+        AmData.executeUpdate("delete AmData where uniqueId not in (select ata.objectUid from AmTagAssociation ata)")
+        AmTagValue.executeUpdate("delete AmTagValue where value not in (select ad.id from AmData ad)")
+    }
+
+    def deleteFromFmApp(inst) {
+        //Delete information
+        FmFolderAssociation.executeUpdate("Delete FmFolderAssociation where fmFolder = ?", [inst])
+        FmFolder.executeUpdate("delete FmFolder where id = ? ", [inst.id])
+        FmData.executeUpdate("delete FmData fd where not exists (Select fm from FmFolder fm where fm.id = fd.id)")
+    }
+
+    def deleteStudy(FmFolder study) {
+        deleteFolder(study)
+        //Delete child elements
+        def children = study.getChildren()
+        children.each {
+            deleteFolder(it)
+            deleteFromAmApp(it.getUniqueId())
+            deleteFromFmApp(it)
+        }
+        //Check bio_experiment
+        Experiment experiment = FmFolderAssociation.findByFmFolder(study)?.getBioObject()
+        if (experiment) {
+            if (!org.transmartproject.db.ontology.I2b2Secure.findBySecureObjectToken(FmFolderAssociation.findByFmFolder(study).objectUid)) {
+                Experiment.executeUpdate("DELETE Experiment where id = ?", [experiment.id])
+                BioData.executeUpdate("Delete BioData where id = ?", [experiment.id])
+                def secureObject = SecureObject.findByBioDataId(experiment.id)
+                if (secureObject) {
+                    SecureObjectAccess.executeUpdate("Delete SecureObjectAccess where secureObject = ?", [secureObject])
+                    secureObject.delete(flush: true)
+                }
+            }
+        }
+        //Delete study
+        deleteFromAmApp(study.getUniqueId())
+        deleteFromFmApp(study)
+    }
+
+    def deleteProgram(FmFolder program) {
+        deleteFolder(program)
+        def children = program.getChildren()
+        children.each {
+            if (it.folderType == 'STUDY') {
+                deleteStudy(it)
+            } else if (it.folderType == 'FOLDER') {
+                deleteFolder(it)
+            }
+        }
+
+        //Delete program
+        deleteFromAmApp(program.getUniqueId())
+        deleteFromFmApp(program)
+    }
+
     def deleteFolder(FmFolder folder) {
         //Delete all files within this folder.
         //Convert PersistentSets to Arrays to avoid concurrent modification
@@ -628,7 +687,7 @@ class FmFolderService {
             //check for unique study identifer
             if (item.codeTypeName == 'STUDY_IDENTIFIER') {
                 def experiment = Experiment.findByAccession(values.list(item.tagItemAttr));
-                if ((experiment != null) && (object == experiment)) {
+                if ((experiment != null) && (object == experiment) && (!(object instanceof Experiment))) {
                     folder.errors.rejectValue("id", "blank", [item.displayName] as String[], "{0} must be unique.")
                 }
             }
