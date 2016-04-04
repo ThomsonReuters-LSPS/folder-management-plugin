@@ -379,7 +379,7 @@ class FmFolderService {
         AmTagTemplateAssociation.executeUpdate("delete AmTagTemplateAssociation where objectUid = ?", [uniqueId])
         AmTagAssociation.executeUpdate("delete AmTagAssociation where subjectUid = ?", [uniqueId])
         AmData.executeUpdate("delete AmData where uniqueId not in (select ata.objectUid from AmTagAssociation ata)")
-        AmTagValue.executeUpdate("delete AmTagValue where value not in (select ad.id from AmData ad)")
+        AmTagValue.executeUpdate("delete AmTagValue where id not in (select ad.id from AmData ad)")
     }
 
     def deleteFromFmApp(inst) {
