@@ -269,6 +269,7 @@ class FmFolderController {
         folder.folderLevel = parentFolder.folderLevel + 1
         folder.folderType = FolderType.STUDY.name()
         folder.parent = parentFolder
+        params.accession = params.accession.toUpperCase()
 
         def experiment = Experiment.findOrCreateByAccession(params.accession)
 
