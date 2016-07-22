@@ -1,3 +1,5 @@
+<g:logMsg>folderDetail page</g:logMsg>
+
 <%@ page import="annotation.*; org.transmart.biomart.*; com.recomdata.util.*; org.apache.commons.lang.StringUtils" %>
 
 <script type="text/javascript">
@@ -46,9 +48,16 @@
                 <g:if test="${folder.folderType.equalsIgnoreCase(FolderType.FOLDER.name()) ||
                               folder.folderType.equalsIgnoreCase(FolderType.ASSAY.name()) ||
                               folder.folderType.equalsIgnoreCase(FolderType.ANALYSIS.name())}">
+<%-- drop adding analysis under a folder in a Study --%>
+<%--
                     <g:if test="${folder.folderType.equalsIgnoreCase(FolderType.FOLDER.name()) &&
                                   folder.parent?.folderType.equalsIgnoreCase(FolderType.STUDY.name())}">
                         <span name="${folder.id}" class="greybutton buttonicon addanalysis">Add new analysis</span>
+                    </g:if>
+--%>
+		    <g:if test="${folder.folderType.equalsIgnoreCase(FolderType.FOLDER.name())}">
+                        <g:logMsg>Upload files button</g:logMsg>
+                        <span name="${folder.id}" class="greybutton buttonicon uploadfiles">Upload files</span>
                     </g:if>
                     <span name="${folder.id}" class="greybutton buttonicon addfolder">Add new folder</span>
                     <span name="${folder.id}" data-parent="${folder.parent?.id}" class="greybutton buttonicon deletefolder">
@@ -119,7 +128,7 @@
                         <!-- TODO: If active -->
             
                             <td valign="top" align="right" class="columnname" width="20%">${amTagItem.displayName}</td>
-                            <td valign="top" align="left" class="columnvalue" width="60%">
+                            <td valign="top" align="left" class="columnvalue" width="30%">
             
                                 <!-- FIXED -->
                                 <g:if test="${amTagItem.tagItemType == 'FIXED'  &&
@@ -207,15 +216,16 @@
     <g:if test="${folder.folderType.equalsIgnoreCase(FolderType.ANALYSIS.name())}">
         <center><div id="partialanalysiswarning" class="messagebox" style="display: none;">
             Displaying results from the first 1000 rows<span id="analysisgenefilteredwarning" style="display: none;">, filtered by the gene search</span>.
-            <a id="loadfullanalysis" href="#" onclick="updateAnalysisData(${bioDataObject.id}, true)">Load all X</a></div></center>
-        <div id="gridViewWrapperAnalysis" name="${bioDataObject.id}" class="ajaxloading">
+            <a id="loadfullanalysis" href="#" onclick="updateAnalysisData(${folder.id}, true)">Load all X</a></div></center>
+        <div id="gridViewWrapperAnalysis" name="${folder.id}" class="ajaxloading">
         </div>
         <script type="text/javascript">
         $j(document).ready(function() 
         {
                 $j.ajax({
                         url:analysisDataURL,
-                        data: {id: ${bioDataObject.id}},
+
+                        data: {id: ${folder.id}},
                         success: function(response) {
                                 jQuery('#gridViewWrapperAnalysis').removeClass('ajaxloading');
                                 if (response.rowCount > 0) {
